@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#233b32">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Mi entrenamiento en casa</title>
+<style>
+:root{--bg:#f5f4ef;--card:#fff;--ink:#202820;--muted:#68736b;--green:#315b48;--pale:#e7efe9;--line:#e3e7e2;--accent:#d7e6d9}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px system-ui,-apple-system,Segoe UI,sans-serif}
+header{background:var(--green);color:white;padding:24px 18px 20px;border-radius:0 0 22px 22px}
+header h1{font-size:23px;margin:0 0 5px}header p{margin:0;color:#e0e9e2;font-size:13px}
+main{max-width:760px;margin:auto;padding:16px 14px 40px}
+.tabs{display:flex;gap:8px;margin:0 0 14px}.tab{flex:1;border:1px solid var(--line);border-radius:12px;background:white;padding:12px 8px;font-weight:700;color:var(--green)}.tab.active{background:var(--green);color:white;border-color:var(--green)}
+.panel,.exercise,.history-item{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin:0 0 6px}
+input,textarea{font:inherit;width:100%;border:1px solid #d9dfd9;border-radius:10px;padding:11px;background:#fff;color:var(--ink)}
+input[type=date]{max-width:100%}textarea{min-height:76px;resize:vertical}
+.exercise-head{display:flex;gap:11px;align-items:center}.art{width:62px;height:62px;flex:0 0 62px;background:var(--pale);border-radius:13px;display:grid;place-items:center}.art svg{width:50px;height:50px}
+.ex-title{font-weight:750;font-size:15px}.reps{font-size:13px;color:var(--muted);margin-top:3px}
+.load{margin:12px 0 10px}.sets{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.sets span{font-size:12px;color:var(--muted);margin-right:auto}.set{display:flex;align-items:center;gap:4px;font-size:13px;background:#f4f6f3;border-radius:9px;padding:7px 8px}.set input{width:17px;height:17px;accent-color:var(--green);padding:0}
+h2{font-size:18px;margin:4px 0 12px}.sub{color:var(--muted);font-size:13px;margin:-5px 0 14px}
+button{border:0;border-radius:12px;padding:12px 14px;font:700 14px system-ui;cursor:pointer}
+.primary{background:var(--green);color:white;width:100%;margin-top:12px}.secondary{background:var(--pale);color:var(--green)}.danger{background:#f8e9e6;color:#8d3427}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.actions button{flex:1}
+.note{font-size:12px;color:var(--muted);line-height:1.45;margin:12px 2px}
+.history-item{display:flex;justify-content:space-between;gap:10px;align-items:center}.history-item strong{font-size:14px}.history-item small{display:block;color:var(--muted);margin-top:3px}
+.empty{color:var(--muted);font-size:14px;padding:12px 2px}
+footer{text-align:center;color:var(--muted);font-size:11px;padding:10px}
+</style>
+</head>
+<body>
+<header><h1>Mi entrenamiento en casa</h1><p>Fuerza · seguimiento · progreso</p></header>
+<main>
+ <div class="tabs"><button class="tab active" data-day="wed">MIÉRCOLES<br><small>Piernas + abdomen</small></button><button class="tab" data-day="fri">VIERNES<br><small>Brazos + espalda</small></button></div>
+ <section class="panel">
+  <label for="sessionDate">FECHA DEL ENTRENAMIENTO</label><input id="sessionDate" type="date">
+  <p class="sub" id="sessionSubtitle">Piernas y abdominales · unos 40 minutos</p>
+ </section>
+ <div id="exerciseList"></div>
+ <section class="panel">
+  <h2>¿Cómo te has encontrado?</h2>
+  <textarea id="notes" placeholder="Sensaciones, dificultad, molestias..."></textarea>
+  <button class="primary" id="save">Guardar entrenamiento</button>
+  <div class="actions"><button class="secondary" id="export">Exportar historial</button><button class="secondary" id="historyToggle">Ver historial</button></div>
+  <p class="note">Tus sesiones se guardan en este navegador y en este dispositivo. Exporta el historial de vez en cuando para tener una copia de seguridad.</p>
+ </section>
+ <section id="historySection" hidden><h2>Historial guardado</h2><div id="historyList"></div></section>
+ <p class="note">Hombro: evita cualquier movimiento que provoque dolor y no eleves los brazos por encima del rango que toleras. Mantén las cargas moderadas y deja alguna repetición en reserva.</p>
+ <footer>Mi entrenamiento · versión personal</footer>
+</main>
+<script>
+const plans={
+ wed:{title:"Piernas y abdominales · unos 40 minutos",items:[
+  ["Sentadilla con mancuernas","3 × 10","squat"],["Peso muerto rumano","3 × 10","hinge"],["Puente de glúteos","3 × 12","bridge"],["Pasos laterales con banda","2 × 12 por lado","band"],["Elevación de gemelos","2 × 15","calf"],["Crunch en banco","2 × 12","crunch"],["Crunch inverso","2 × 12","reverse"]]},
+ fri:{title:"Brazos y espalda · unos 35–40 minutos",items:[
+  ["Curl de bíceps","3 × 12","curl"],["Curl martillo","2 × 12","hammer"],["Extensión de tríceps con banda","3 × 12","triceps"],["Remo a una mano apoyada","3 × 10 por lado","row"],["Remo sentado con banda","2 × 12","seatedrow"]]}
+};
+const drawings={
+ squat:`<circle cx="25" cy="10" r="5"/><path d="M25 16v14l-9 8m9-8 10 8M25 21l-9 7m9-7 10 7M8 26h7m-7-4v8m42-4h-7m7-4v8"/>`,
+ hinge:`<circle cx="32" cy="10" r="5"/><path d="M28 16l-9 13 12 5 8-10M19 29l-5 16m17-11 4 11M10 46h10m14 0h10M12 22v15m-4-12h8m24 0v12m-4-9h8"/>`,
+ bridge:`<circle cx="15" cy="29" r="4"/><path d="M19 30l14-8 12 9m-26-1 7 13h18m-29 3h36"/>`,
+ band:`<circle cx="17" cy="11" r="5"/><circle cx="43" cy="11" r="5"/><path d="M17 17l-3 18 8 10m21-28 3 18-8 10M14 35h32M17 28l26 0"/>`,
+ calf:`<circle cx="25" cy="9" r="5"/><path d="M25 15v14l-7 12m7-12 8 12m-8-26 10 7m-17 31h11m-5-5 5 5m4-5 5 5"/>`,
+ crunch:`<circle cx="15" cy="30" r="5"/><path d="M20 31l15-7 10 9m-25-2-7 12m22-12 7 12M7 45h42"/>`,
+ reverse:`<circle cx="14" cy="29" r="5"/><path d="M19 30l15 4 9-8m-24 4-7 14m22-10 9 10M7 46h42"/>`,
+ curl:`<circle cx="25" cy="9" r="5"/><path d="M25 15v23m0-16 13 8m-13-8-8 8m8 8-7 9m7-9 7 9m9-18v-9m-4 0h8"/>`,
+ hammer:`<circle cx="25" cy="9" r="5"/><path d="M25 15v23m0-16 12 10m-12-10-9 8m9 8-7 9m7-9 7 9m12-20v-10m-4 0h8"/>`,
+ triceps:`<circle cx="24" cy="9" r="5"/><path d="M24 15v23m0-17 12 7v13m-12-20-9 8m9 9-7 9m7-9 7 9M36 38v8"/>`,
+ row:`<circle cx="29" cy="10" r="5"/><path d="M25 16l-8 15 13 5 10-12m-23 6-7 14m20-8 7 10m-4-21 10 5"/>`,
+ seatedrow:`<circle cx="17" cy="12" r="5"/><path d="M17 18v15h17l8 10m-25-10-8 12m25-12 4-13m-21 5 13 4m-19 17h35"/>`
+};
+function svg(type){return `<svg viewBox="0 0 58 58" fill="none" stroke="#315b48" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${drawings[type]||drawings.squat}</svg>`}
+let day="wed", history=JSON.parse(localStorage.getItem("homeStrengthHistory")||"[]");
+const dateEl=document.getElementById("sessionDate");dateEl.value=new Date().toISOString().slice(0,10);
+function render(){
+ const p=plans[day];document.getElementById("sessionSubtitle").textContent=p.title;
+ document.getElementById("exerciseList").innerHTML=p.items.map((it,i)=>{
+  const count=Number(it[1].match(/^\d+/)[0]);
+  return `<article class="exercise" data-index="${i}"><div class="exercise-head"><div class="art">${svg(it[2])}</div><div><div class="ex-title">${i+1}. ${it[0]}</div><div class="reps">${it[1]}</div></div></div><div class="load"><label>PESO / RESISTENCIA UTILIZADA</label><input class="weight" placeholder="Ej. 4 kg por mancuerna / banda roja"></div><div class="sets"><span>Marca cada serie terminada</span>${Array.from({length:count},(_,n)=>`<label class="set"><input type="checkbox"> Serie ${n+1}</label>`).join("")}</div></article>`
+ }).join("");
+}
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{day=b.dataset.day;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));render()}));
+document.getElementById("save").addEventListener("click",()=>{
+ const exercises=[...document.querySelectorAll(".exercise")].map((el,i)=>({name:plans[day].items[i][0],prescription:plans[day].items[i][1],weight:el.querySelector(".weight").value,sets:[...el.querySelectorAll('input[type="checkbox"]')].map(x=>x.checked)}));
+ const entry={date:dateEl.value,day:day==="wed"?"Miércoles":"Viernes",exercises,notes:document.getElementById("notes").value};
+ const idx=history.findIndex(x=>x.date===entry.date&&x.day===entry.day);
+ if(idx>=0)history[idx]=entry;else history.unshift(entry);
+ localStorage.setItem("homeStrengthHistory",JSON.stringify(history));renderHistory();alert("Entrenamiento guardado en este dispositivo.");
+});
+function renderHistory(){
+ const el=document.getElementById("historyList");
+ if(!history.length){el.innerHTML='<p class="empty">Todavía no has guardado entrenamientos.</p>';return}
+ el.innerHTML=history.map((h,i)=>`<article class="history-item"><div><strong>${h.day} · ${h.date}</strong><small>${h.exercises.filter(e=>e.sets.some(Boolean)).length} ejercicios con series marcadas</small></div><button class="secondary" data-open="${i}">Ver</button></article>`).join("");
+ el.querySelectorAll("[data-open]").forEach(b=>b.addEventListener("click",()=>{const h=history[Number(b.dataset.open)];alert(`${h.day} · ${h.date}\n\n`+h.exercises.map(e=>`${e.name}: ${e.weight||"sin peso"} · ${e.sets.filter(Boolean).length}/${e.sets.length} series`).join("\n")+(h.notes?`\n\nNotas: ${h.notes}`:""))}));
+}
+document.getElementById("historyToggle").addEventListener("click",()=>{const s=document.getElementById("historySection");s.hidden=!s.hidden;renderHistory();document.getElementById("historyToggle").textContent=s.hidden?"Ver historial":"Ocultar historial"});
+document.getElementById("export").addEventListener("click",()=>{const blob=new Blob([JSON.stringify(history,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="mi-entrenamiento-historial.json";a.click();URL.revokeObjectURL(a.href)});
+render();renderHistory();
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js").catch(()=>{});
+</script>
+</body></html>
